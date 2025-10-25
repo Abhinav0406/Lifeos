@@ -49,3 +49,4 @@ npm run dev
 - ✅ History persists per user
 
 The app should now work perfectly with user authentication and folder organization!
+

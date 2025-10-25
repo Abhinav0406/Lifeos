@@ -348,7 +348,8 @@ export function ChatInterface({ onEnhancementComplete, provider, mode, selectedF
           mode, 
           provider, 
           folderId: selectedFolderId,
-          questionsAndAnswers: answers
+          questionsAndAnswers: answers,
+          conversationHistory: messages.filter(msg => msg.type !== 'system') // Exclude system messages
         })
       })
 
@@ -425,7 +426,8 @@ export function ChatInterface({ onEnhancementComplete, provider, mode, selectedF
           prompt, 
           mode, 
           provider,
-          folderId: selectedFolderId
+          folderId: selectedFolderId,
+          conversationHistory: messages.filter(msg => msg.type !== 'system') // Exclude system messages
         })
       })
 
@@ -486,6 +488,15 @@ export function ChatInterface({ onEnhancementComplete, provider, mode, selectedF
     ) : (
       <Copy className="h-4 w-4" />
     )
+  }
+
+  const processMessageContent = (content: string) => {
+    return content
+      .replace(/^#{1,6}\s+(.*)$/gm, '**$1**') // Convert markdown headers to bold
+      .replace(/\*\*(.*?)\*\*/g, '$1') // Remove bold markdown but keep text
+      .replace(/\*(.*?)\*/g, '$1') // Remove italic markdown
+      .replace(/^\s*[-*]\s+/gm, '• ') // Convert bullet points to clean bullets
+      .replace(/^\s*\d+\.\s+/gm, (match) => match.replace(/^\s*\d+\.\s+/, '')) // Remove numbered lists
   }
 
   return (
@@ -634,12 +645,13 @@ export function ChatInterface({ onEnhancementComplete, provider, mode, selectedF
                         : 'bg-yellow-50 dark:bg-yellow-900 text-yellow-900 dark:text-yellow-100'
                   }`}>
                     <div className="whitespace-pre-wrap leading-relaxed text-xs sm:text-sm">
-                      {message.content
-                        .replace(/\*\*(.*?)\*\*/g, '$1') // Remove bold markdown
-                        .replace(/\*(.*?)\*/g, '$1') // Remove italic markdown
-                        .replace(/^\s*[-*]\s+/gm, '• ') // Convert bullet points to clean bullets
-                        .replace(/^\s*\d+\.\s+/gm, (match) => match.replace(/^\s*\d+\.\s+/, '')) // Remove numbered lists
-                      }
+                      {processMessageContent(message.content).split('**').map((part, index) => 
+                        index % 2 === 1 ? (
+                          <strong key={index} className="font-bold">{part}</strong>
+                        ) : (
+                          part
+                        )
+                      )}
                     </div>
                     
                     {/* Question Options */}

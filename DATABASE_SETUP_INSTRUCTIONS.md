@@ -17,3 +17,4 @@
 -- ✅ Delete individual conversations
 -- ✅ Incognito mode (no history saving)
 -- ✅ Folder-based organization
+

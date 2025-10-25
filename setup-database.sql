@@ -83,3 +83,4 @@ CREATE TRIGGER update_enhancement_results_updated_at BEFORE UPDATE ON enhancemen
 
 -- Success message
 SELECT 'Database setup completed successfully!' as message;
+

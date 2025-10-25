@@ -14,3 +14,4 @@ To get these values:
 4. Copy the Project URL and anon public key
 
 Make sure the `.env.local` file is in your project root directory (same level as package.json).
+

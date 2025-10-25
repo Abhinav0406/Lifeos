@@ -6,11 +6,13 @@
   "scripts": {
     "dev": "next dev --turbo",
     "build": "next build",
+    "build:fast": "cross-env SKIP_ENV_VALIDATION=true next build",
     "start": "next start",
     "lint": "next lint",
     "build:pwa": "next build && next export",
     "deploy": "npm run build && vercel --prod",
-    "dev:clean": "rm -rf .next && npm run dev"
+    "dev:clean": "rm -rf .next && npm run dev",
+    "build:clean": "rm -rf .next && npm run build"
   },
   "dependencies": {
     "@google/generative-ai": "^0.24.1",

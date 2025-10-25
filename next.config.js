@@ -3,6 +3,9 @@ const withPWA = require('next-pwa')({
   register: true,
   skipWaiting: true,
   disable: process.env.NODE_ENV === 'development',
+  buildExcludes: [/middleware-manifest\.json$/],
+  cacheOnFrontEndNav: true,
+  reloadOnOnline: true,
   runtimeCaching: [
     {
       urlPattern: /^https?.*/,
@@ -24,9 +27,10 @@ const nextConfig = {
   images: {
     domains: ['localhost'],
   },
-  // Fix WebSocket upgrade issues
+  // Performance optimizations
   experimental: {
     serverComponentsExternalPackages: ['@supabase/supabase-js'],
+    optimizePackageImports: ['lucide-react'],
   },
   // Handle WebSocket upgrade errors
   webpack: (config, { dev, isServer }) => {

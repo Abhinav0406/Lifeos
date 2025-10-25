@@ -65,7 +65,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const { prompt, mode = 'general', provider = 'groq', folderId, questionsAndAnswers } = await request.json()
+    const { prompt, mode = 'general', provider = 'groq', folderId, questionsAndAnswers, conversationHistory = [] } = await request.json()
 
     if (!prompt || typeof prompt !== 'string') {
       return NextResponse.json(
@@ -141,14 +141,36 @@ export async function POST(request: NextRequest) {
 
         enhancedPrompt = enhancementResponse.choices[0]?.message?.content || prompt
 
-        // Now generate response using the enhanced prompt
+        // Now generate response using the enhanced prompt with conversation history
+        const messages: Array<{role: 'system' | 'user' | 'assistant', content: string}> = []
+        
+        // Add conversation history if available
+        if (conversationHistory && conversationHistory.length > 0) {
+          // Add system message for context
+          messages.push({
+            role: 'system' as const,
+            content: 'You are having a conversation with the user. Use the conversation history to provide contextually relevant responses. Reference previous messages when appropriate.'
+          })
+          
+          // Add conversation history (limit to last 10 messages to avoid token limits)
+          const recentHistory = conversationHistory.slice(-10)
+          for (const msg of recentHistory) {
+            const role = msg.type === 'bot' ? 'assistant' : 'user'
+            messages.push({
+              role: role as 'system' | 'user' | 'assistant',
+              content: msg.content
+            })
+          }
+        }
+        
+        // Add the current enhanced prompt
+        messages.push({
+          role: 'user' as const,
+          content: enhancedPrompt
+        })
+        
         const finalResponse = await openai.chat.completions.create({
-          messages: [
-            {
-              role: 'user',
-              content: enhancedPrompt
-            }
-          ],
+          messages,
           model: OPENAI_MODEL,
           max_tokens: modelSettings.maxTokens,
           temperature: modelSettings.temperature,
@@ -185,10 +207,22 @@ export async function POST(request: NextRequest) {
 
         enhancedPrompt = enhancementResponse.generated_text || prompt
 
-        // Now generate response using the enhanced prompt
+        // Now generate response using the enhanced prompt with conversation history
+        let finalPrompt = enhancedPrompt
+        
+        // Add conversation history if available
+        if (conversationHistory && conversationHistory.length > 0) {
+          const recentHistory = conversationHistory.slice(-10)
+          const historyText = recentHistory.map((msg: any) => 
+            `${msg.type === 'bot' ? 'Assistant' : 'User'}: ${msg.content}`
+          ).join('\n')
+          
+          finalPrompt = `Previous conversation:\n${historyText}\n\nCurrent request: ${enhancedPrompt}`
+        }
+        
         const finalResponse = await hf.textGeneration({
           model: HUGGINGFACE_MODEL,
-          inputs: enhancedPrompt,
+          inputs: finalPrompt,
           parameters: {
             max_new_tokens: modelSettings.maxTokens,
             temperature: modelSettings.temperature,
@@ -226,9 +260,35 @@ export async function POST(request: NextRequest) {
 
         enhancedPrompt = enhancementResult.response.text() || prompt
 
-        // Now generate response using the enhanced prompt
+        // Now generate response using the enhanced prompt with conversation history
+        const contents = []
+        
+        // Add conversation history if available
+        if (conversationHistory && conversationHistory.length > 0) {
+          // Add system message for context
+          contents.push({
+            role: 'user',
+            parts: [{ text: 'You are having a conversation with the user. Use the conversation history to provide contextually relevant responses. Reference previous messages when appropriate.' }]
+          })
+          
+          // Add conversation history (limit to last 10 messages to avoid token limits)
+          const recentHistory = conversationHistory.slice(-10)
+          for (const msg of recentHistory) {
+            contents.push({
+              role: msg.type === 'bot' ? 'model' : 'user',
+              parts: [{ text: msg.content }]
+            })
+          }
+        }
+        
+        // Add the current enhanced prompt
+        contents.push({
+          role: 'user',
+          parts: [{ text: enhancedPrompt }]
+        })
+        
         const finalResult = await model.generateContent({
-          contents: [{ role: 'user', parts: [{ text: enhancedPrompt }] }],
+          contents,
           generationConfig: {
             maxOutputTokens: modelSettings.maxTokens,
             temperature: modelSettings.temperature,
@@ -268,14 +328,36 @@ export async function POST(request: NextRequest) {
 
         enhancedPrompt = enhancementResponse.choices[0]?.message?.content || prompt
 
-        // Now generate response using the enhanced prompt
+        // Now generate response using the enhanced prompt with conversation history
+        const messages: Array<{role: 'system' | 'user' | 'assistant', content: string}> = []
+        
+        // Add conversation history if available
+        if (conversationHistory && conversationHistory.length > 0) {
+          // Add system message for context
+          messages.push({
+            role: 'system' as const,
+            content: 'You are having a conversation with the user. Use the conversation history to provide contextually relevant responses. Reference previous messages when appropriate.'
+          })
+          
+          // Add conversation history (limit to last 10 messages to avoid token limits)
+          const recentHistory = conversationHistory.slice(-10)
+          for (const msg of recentHistory) {
+            const role = msg.type === 'bot' ? 'assistant' : 'user'
+            messages.push({
+              role: role as 'system' | 'user' | 'assistant',
+              content: msg.content
+            })
+          }
+        }
+        
+        // Add the current enhanced prompt
+        messages.push({
+          role: 'user' as const,
+          content: enhancedPrompt
+        })
+        
         const finalResponse = await groq.chat.completions.create({
-          messages: [
-            {
-              role: 'user',
-              content: enhancedPrompt
-            }
-          ],
+          messages,
           model: GROQ_MODEL,
           max_tokens: modelSettings.maxTokens,
           temperature: modelSettings.temperature,
