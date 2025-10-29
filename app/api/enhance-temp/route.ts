@@ -55,15 +55,8 @@ const ENHANCEMENT_MODES = {
 
 export async function POST(request: NextRequest) {
   try {
-    // Get user from session
-    const { user, error: authError } = await getUser()
-    
-    if (authError || !user) {
-      return NextResponse.json(
-        { error: 'Authentication required' },
-        { status: 401 }
-      )
-    }
+    // Get user from session (allow anonymous usage; skip DB save if no user)
+    const { user } = await getUser()
 
     const { prompt, mode = 'general', provider = 'groq', folderId, questionsAndAnswers, conversationHistory = [] } = await request.json()
 
@@ -149,11 +142,11 @@ export async function POST(request: NextRequest) {
           // Add system message for context
           messages.push({
             role: 'system' as const,
-            content: 'You are having a conversation with the user. Use the conversation history to provide contextually relevant responses. Reference previous messages when appropriate.'
+            content: 'You are in an ongoing conversation. Strictly resolve pronouns, entities, and implicit references using prior messages. Be concise and consistent with previously established facts.'
           })
           
-          // Add conversation history (limit to last 10 messages to avoid token limits)
-          const recentHistory = conversationHistory.slice(-10)
+          // Add conversation history (limit to last 20 messages to avoid token limits)
+          const recentHistory = conversationHistory.slice(-20)
           for (const msg of recentHistory) {
             const role = msg.type === 'bot' ? 'assistant' : 'user'
             messages.push({
@@ -212,12 +205,12 @@ export async function POST(request: NextRequest) {
         
         // Add conversation history if available
         if (conversationHistory && conversationHistory.length > 0) {
-          const recentHistory = conversationHistory.slice(-10)
+          const recentHistory = conversationHistory.slice(-20)
           const historyText = recentHistory.map((msg: any) => 
             `${msg.type === 'bot' ? 'Assistant' : 'User'}: ${msg.content}`
           ).join('\n')
           
-          finalPrompt = `Previous conversation:\n${historyText}\n\nCurrent request: ${enhancedPrompt}`
+          finalPrompt = `Instruction: You are in an ongoing conversation. Strictly resolve pronouns, entities, and implicit references using prior messages. Be concise and consistent with established facts.\n\nPrevious conversation:\n${historyText}\n\nCurrent request: ${enhancedPrompt}`
         }
         
         const finalResponse = await hf.textGeneration({
@@ -268,11 +261,11 @@ export async function POST(request: NextRequest) {
           // Add system message for context
           contents.push({
             role: 'user',
-            parts: [{ text: 'You are having a conversation with the user. Use the conversation history to provide contextually relevant responses. Reference previous messages when appropriate.' }]
+            parts: [{ text: 'You are in an ongoing conversation. Strictly resolve pronouns, entities, and implicit references using prior messages. Be concise and consistent with previously established facts.' }]
           })
           
-          // Add conversation history (limit to last 10 messages to avoid token limits)
-          const recentHistory = conversationHistory.slice(-10)
+          // Add conversation history (limit to last 20 messages to avoid token limits)
+          const recentHistory = conversationHistory.slice(-20)
           for (const msg of recentHistory) {
             contents.push({
               role: msg.type === 'bot' ? 'model' : 'user',
@@ -336,11 +329,11 @@ export async function POST(request: NextRequest) {
           // Add system message for context
           messages.push({
             role: 'system' as const,
-            content: 'You are having a conversation with the user. Use the conversation history to provide contextually relevant responses. Reference previous messages when appropriate.'
+            content: 'You are in an ongoing conversation. Strictly resolve pronouns, entities, and implicit references using prior messages. Be concise and consistent with previously established facts.'
           })
           
-          // Add conversation history (limit to last 10 messages to avoid token limits)
-          const recentHistory = conversationHistory.slice(-10)
+          // Add conversation history (limit to last 20 messages to avoid token limits)
+          const recentHistory = conversationHistory.slice(-20)
           for (const msg of recentHistory) {
             const role = msg.type === 'bot' ? 'assistant' : 'user'
             messages.push({
@@ -371,28 +364,30 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Save to database
-    const supabase = createClient()
-    
-    const { data: savedResult, error: saveError } = await supabase
-      .from('enhancement_results')
-      .insert({
-        user_id: user.id,
-        original_prompt: prompt,
-        enhanced_prompt: enhancedPrompt,
-        ai_response: aiResponse,
-        mode,
-        provider,
-        folder_id: folderId || null,
-        questions_and_answers: questionsAndAnswers || null,
-        created_at: new Date().toISOString()
-      })
-      .select()
-      .single()
-
-    if (saveError) {
-      console.error('Error saving to database:', saveError)
-      // Still return the result even if saving fails
+    // Save to database only if user is authenticated
+    let savedResult: any = null
+    if (user) {
+      const supabase = createClient()
+      const { data, error: saveError } = await supabase
+        .from('enhancement_results')
+        .insert({
+          user_id: user.id,
+          original_prompt: prompt,
+          enhanced_prompt: enhancedPrompt,
+          ai_response: aiResponse,
+          mode,
+          provider,
+          folder_id: folderId || null,
+          questions_and_answers: questionsAndAnswers || null,
+          created_at: new Date().toISOString()
+        })
+        .select()
+        .single()
+      if (saveError) {
+        console.error('Error saving to database:', saveError)
+      } else {
+        savedResult = data
+      }
     }
 
     return NextResponse.json({

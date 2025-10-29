@@ -26,6 +26,14 @@ export default function Home() {
   // Load conversations and folders from API when user changes
   useEffect(() => {
     if (user) {
+      // Restore last conversation from localStorage
+      try {
+        const key = `lastConversationId:${user.id}`
+        const saved = localStorage.getItem(key)
+        if (saved) {
+          setCurrentConversationId(saved)
+        }
+      } catch {}
       fetchConversations()
       fetchFolders()
     } else {
@@ -78,6 +86,18 @@ export default function Home() {
       if (response.ok) {
         const data = await response.json()
         setConversations(data.conversations || [])
+
+        // Auto-select a conversation if none is selected
+        if (!currentConversationId) {
+          const stored = localStorage.getItem(`lastConversationId:${user.id}`)
+          if (!stored && data.conversations && data.conversations.length > 0) {
+            const mostRecentId = data.conversations[0].id
+            setCurrentConversationId(mostRecentId)
+            try {
+              localStorage.setItem(`lastConversationId:${user.id}`, mostRecentId)
+            } catch {}
+          }
+        }
       } else {
         // If API fails, set empty conversations to allow app to work
         console.error('Failed to fetch conversations, using empty array')
@@ -110,6 +130,11 @@ export default function Home() {
 
   const handleLoadConversation = (conversationId: string) => {
     setCurrentConversationId(conversationId)
+    if (user) {
+      try {
+        localStorage.setItem(`lastConversationId:${user.id}`, conversationId)
+      } catch {}
+    }
   }
 
   const handleDeleteConversation = async (conversationId: string) => {
@@ -269,8 +294,8 @@ export default function Home() {
           {/* Collapsible Sidebar */}
           <div className={`transition-all duration-300 ${
             sidebarCollapsed 
-              ? 'w-0 hidden sm:w-80 sm:block' 
-              : 'w-full sm:w-80 lg:w-80 block'
+              ? 'w-0 hidden' 
+              : 'w-80 block'
           } bg-gray-900 dark:bg-gray-900 border-r border-gray-700 dark:border-gray-700 overflow-hidden`}>
             <Sidebar
               conversations={conversations}
@@ -293,11 +318,11 @@ export default function Home() {
           
           {/* Main Content */}
           <div className="flex-1 flex flex-col overflow-hidden bg-gray-800 dark:bg-gray-800">
-            {/* Floating Hamburger Menu - Only show on mobile when sidebar is collapsed */}
+            {/* Floating Hamburger Menu - show when sidebar is collapsed */}
             {sidebarCollapsed && (
               <button
                 onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
-                className="fixed top-3 left-3 z-50 p-2 bg-gray-800 dark:bg-gray-800 hover:bg-gray-700 dark:hover:bg-gray-700 rounded-lg transition-colors shadow-lg border border-gray-600 dark:border-gray-600 sm:hidden"
+                className="fixed top-3 left-3 z-50 p-2 bg-gray-800 dark:bg-gray-800 hover:bg-gray-700 dark:hover:bg-gray-700 rounded-lg transition-colors shadow-lg border border-gray-600 dark:border-gray-600"
               >
                 <svg className="w-4 h-4 text-gray-300 dark:text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4h18M3 8h18M3 12h18M3 16h18" />

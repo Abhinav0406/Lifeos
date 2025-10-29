@@ -81,3 +81,5 @@ CREATE TRIGGER update_folders_updated_at BEFORE UPDATE ON folders
 CREATE TRIGGER update_enhancement_results_updated_at BEFORE UPDATE ON enhancement_results
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
+
+

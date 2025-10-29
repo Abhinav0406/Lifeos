@@ -6,6 +6,8 @@ export const GROQ_CONFIG = {
     'llama-3.1-70b-versatile': 'Llama 3.1 70B Versatile (Free)',
     'mixtral-8x7b-32768': 'Mixtral 8x7B (Free)',
     'gemma2-9b-it': 'Gemma 2 9B (Free)',
+    // Text-to-Speech
+    'playai-tts': 'PlayAI TTS (Free)',
   },
   
   // Default model to use (free tier)
@@ -28,6 +30,11 @@ export const GROQ_CONFIG = {
     'gemma2-9b-it': {
       maxTokens: 1000,
       temperature: 0.7,
+    },
+    // TTS models typically ignore maxTokens; keep for uniformity
+    'playai-tts': {
+      maxTokens: 0,
+      temperature: 0.0,
     },
   }
 }

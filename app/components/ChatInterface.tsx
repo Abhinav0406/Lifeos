@@ -1,7 +1,8 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
-import { Send, RotateCcw, Copy, Check, Sparkles, User, Bot } from 'lucide-react'
+import { Send, RotateCcw, Copy, Check, Sparkles, User, Bot, Image as ImageIcon } from 'lucide-react'
+import { VoiceInterface } from './VoiceInterface'
 
 interface Question {
   question: string
@@ -17,6 +18,10 @@ interface ChatMessage {
   isQuestion?: boolean
   question?: Question
   selectedAnswer?: string
+  imageUrl?: string
+  imageProvider?: string
+  imageSize?: string
+  isImageGeneration?: boolean
 }
 
 interface Folder {
@@ -51,6 +56,13 @@ export function ChatInterface({ onEnhancementComplete, provider, mode, selectedF
   const [copiedField, setCopiedField] = useState<string | null>(null)
   const [chatMode, setChatMode] = useState<'enhance' | 'direct'>('enhance')
   const [questionCount, setQuestionCount] = useState(0)
+  const [isListening, setIsListening] = useState(false)
+  const [isSpeaking, setIsSpeaking] = useState(false)
+  const [showTopControls, setShowTopControls] = useState(false)
+  const [showBottomControls, setShowBottomControls] = useState(false)
+  const [imageMode, setImageMode] = useState(false)
+  const [imageProvider, setImageProvider] = useState<'dall-e-3' | 'dall-e-2' | 'stable-diffusion'>('dall-e-3')
+  const [imageSize, setImageSize] = useState<'256x256' | '512x512' | '1024x1024' | '1792x1024' | '1024x1792'>('1024x1024')
   
   // Sync chatMode with incognitoMode prop
   useEffect(() => {
@@ -90,7 +102,11 @@ export function ChatInterface({ onEnhancementComplete, provider, mode, selectedF
           timestamp: new Date(msg.created_at),
           isQuestion: msg.is_question,
           question: msg.question_data,
-          selectedAnswer: msg.selected_answer
+          selectedAnswer: msg.selected_answer,
+          imageUrl: msg.image_url,
+          imageProvider: msg.image_provider,
+          imageSize: msg.image_size,
+          isImageGeneration: msg.is_image_generation
         }))
         setMessages(loadedMessages)
         
@@ -119,7 +135,11 @@ export function ChatInterface({ onEnhancementComplete, provider, mode, selectedF
           content: message.content,
           isQuestion: message.isQuestion,
           questionData: message.question,
-          selectedAnswer: message.selectedAnswer
+          selectedAnswer: message.selectedAnswer,
+          imageUrl: message.imageUrl,
+          imageProvider: message.imageProvider,
+          imageSize: message.imageSize,
+          isImageGeneration: message.isImageGeneration
         })
       })
     } catch (error) {
@@ -143,6 +163,13 @@ export function ChatInterface({ onEnhancementComplete, provider, mode, selectedF
       }
     } catch (error) {
       console.error('Error updating conversation folder:', error)
+    }
+  }
+
+  const handleFolderSelect = async (folderId: string | null) => {
+    onFolderChange?.(folderId)
+    if (currentConversationId) {
+      await updateConversationFolder(currentConversationId, folderId)
     }
   }
 
@@ -499,6 +526,108 @@ export function ChatInterface({ onEnhancementComplete, provider, mode, selectedF
       .replace(/^\s*\d+\.\s+/gm, (match) => match.replace(/^\s*\d+\.\s+/, '')) // Remove numbered lists
   }
 
+  const handleVoiceTranscript = (text: string) => {
+    console.log('Voice transcript received:', text)
+    if (text.trim()) {
+      setInputValue(text)
+      // Auto-send voice input
+      if (chatMode === 'enhance') {
+        handleInitialPrompt(text.trim())
+      } else {
+        handleDirectChat(text.trim())
+      }
+      setInputValue('')
+    }
+  }
+
+  const handleVoiceSpeak = (text: string) => {
+    console.log('Speaking:', text)
+  }
+
+  const handleListeningChange = (listening: boolean) => {
+    console.log('Listening state changed:', listening)
+    setIsListening(listening)
+  }
+
+  const handleSpeakingChange = (speaking: boolean) => {
+    console.log('Speaking state changed:', speaking)
+    setIsSpeaking(speaking)
+  }
+
+  const handleImageGeneration = async (prompt: string) => {
+    console.log('🎨 Generating image with prompt:', prompt)
+    setIsLoading(true)
+    
+    // Create new conversation if we don't have one
+    let conversationId = currentConversationId
+    if (!conversationId) {
+      conversationId = await createNewConversation(`Image: ${prompt.substring(0, 30)}...`)
+      if (!conversationId) {
+        setIsLoading(false)
+        return
+      }
+    }
+    
+    // Add user message
+    const userMessage: ChatMessage = {
+      id: Date.now().toString(),
+      type: 'user',
+      content: prompt,
+      timestamp: new Date(),
+      isImageGeneration: true
+    }
+    
+    setMessages(prev => [...prev, userMessage])
+    await saveMessage(userMessage, conversationId)
+    
+    try {
+      const response = await fetch('/api/image', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          prompt: prompt.trim(),
+          provider: imageProvider,
+          size: imageSize,
+          quality: imageProvider === 'dall-e-3' ? 'standard' : undefined,
+          n: imageProvider === 'dall-e-2' ? 1 : undefined
+        })
+      })
+      
+      if (!response.ok) {
+        const error = await response.json()
+        throw new Error(error.details || error.message || 'Image generation failed')
+      }
+      
+      const data = await response.json()
+      
+      // Add bot message with image
+      const botMessage: ChatMessage = {
+        id: (Date.now() + 1).toString(),
+        type: 'bot',
+        content: data.revisedPrompt || prompt,
+        timestamp: new Date(),
+        imageUrl: data.imageUrl,
+        imageProvider: data.provider,
+        imageSize: data.size,
+        isImageGeneration: true
+      }
+      
+      setMessages(prev => [...prev, botMessage])
+      await saveMessage(botMessage, conversationId)
+    } catch (error: any) {
+      console.error('Image generation error:', error)
+      const errorMessage: ChatMessage = {
+        id: (Date.now() + 1).toString(),
+        type: 'bot',
+        content: `Error generating image: ${error.message}`,
+        timestamp: new Date()
+      }
+      setMessages(prev => [...prev, errorMessage])
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
   return (
     <div className="flex flex-col h-full bg-gray-800 dark:bg-gray-800 font-sans">
 
@@ -533,42 +662,74 @@ export function ChatInterface({ onEnhancementComplete, provider, mode, selectedF
             <div className="w-full max-w-2xl px-4 sm:px-0">
               <div className="bg-gray-800 dark:bg-gray-800 border border-gray-600 dark:border-gray-600 rounded-xl shadow-lg">
                 {/* Top Row - Provider and Mode Toggle */}
-                <div className="flex items-center justify-between px-3 py-2 border-b border-gray-700 dark:border-gray-700">
-                  <div className="flex items-center space-x-2">
-                    <select
-                      value={provider}
-                      onChange={(e) => onProviderChange?.(e.target.value)}
-                      className="bg-gray-800 text-gray-100 text-sm font-medium border border-gray-600 rounded-md px-2 py-1 cursor-pointer hover:bg-gray-700 transition-colors"
-                    >
-                      <option value="groq" className="bg-gray-800 text-gray-100">⚡ Groq</option>
-                      <option value="openai" className="bg-gray-800 text-gray-100">🧠 OpenAI</option>
-                      <option value="huggingface" className="bg-gray-800 text-gray-100">🤗 Hugging Face</option>
-                      <option value="gemini" className="bg-gray-800 text-gray-100">💎 Gemini</option>
-                    </select>
-                  </div>
-                  
-                  {/* Mode Toggle - Clean Design */}
-                  <div className="flex bg-gray-700 dark:bg-gray-700 rounded-md p-0.5">
-                    <button
-                      onClick={() => setChatMode('enhance')}
-                      className={`px-2 py-1 text-xs font-medium rounded transition-all duration-200 ${
-                        chatMode === 'enhance'
-                          ? 'bg-blue-600 text-white'
-                          : 'text-gray-300 hover:text-white'
-                      }`}
-                    >
-                      ✨ Enhance
-                    </button>
-                    <button
-                      onClick={() => setChatMode('direct')}
-                      className={`px-2 py-1 text-xs font-medium rounded transition-all duration-200 ${
-                        chatMode === 'direct'
-                          ? 'bg-blue-600 text-white'
-                          : 'text-gray-300 hover:text-white'
-                      }`}
-                    >
-                      💬 Direct
-                    </button>
+                {/* Toggle Button for Top Controls */}
+                <div className="px-3 py-1 border-b border-gray-700 dark:border-gray-700">
+                  <button
+                    onClick={() => setShowTopControls(!showTopControls)}
+                    className="flex items-center space-x-2 text-gray-400 hover:text-gray-200 text-xs transition-colors"
+                  >
+                    <span>{showTopControls ? '▼' : '▶'}</span>
+                    <span>Settings</span>
+                  </button>
+                </div>
+                
+                {/* Provider/Mode/Folder - COLLAPSIBLE */}
+                <div className={`transition-all duration-300 overflow-hidden ${
+                  showTopControls ? 'max-h-20 opacity-100' : 'max-h-0 opacity-0'
+                }`}>
+                  <div className="flex items-center justify-between px-3 py-2 border-b border-gray-700 dark:border-gray-700 gap-2">
+                    {/* Provider Selection */}
+                    <div className="flex items-center space-x-2">
+                      <select
+                        value={provider}
+                        onChange={(e) => onProviderChange?.(e.target.value)}
+                        className="bg-gray-800 text-gray-100 text-sm font-medium border border-gray-600 rounded-md px-2 py-1 cursor-pointer hover:bg-gray-700 transition-colors"
+                      >
+                        <option value="groq" className="bg-gray-800 text-gray-100">⚡ Groq</option>
+                        <option value="openai" className="bg-gray-800 text-gray-100">🧠 OpenAI</option>
+                        <option value="huggingface" className="bg-gray-800 text-gray-100">🤗 Hugging Face</option>
+                        <option value="gemini" className="bg-gray-800 text-gray-100">💎 Gemini</option>
+                      </select>
+                    </div>
+                    
+                    {/* Folder Selection */}
+                    <div className="flex items-center space-x-2">
+                      <select
+                        value={selectedFolderId ?? ''}
+                        onChange={(e) => handleFolderSelect(e.target.value ? e.target.value : null)}
+                        className="bg-gray-800 text-gray-100 text-sm font-medium border border-gray-600 rounded-md px-2 py-1 cursor-pointer hover:bg-gray-700 transition-colors"
+                        title="Save chat to project"
+                      >
+                        <option value="" className="bg-gray-800 text-gray-100">Unorganized</option>
+                        {folders.map((f) => (
+                          <option key={f.id} value={f.id} className="bg-gray-800 text-gray-100">{f.name}</option>
+                        ))}
+                      </select>
+                    </div>
+
+                    {/* Mode Toggle */}
+                    <div className="flex bg-gray-700 dark:bg-gray-700 rounded-md p-0.5">
+                      <button
+                        onClick={() => setChatMode('enhance')}
+                        className={`px-2 py-1 text-xs font-medium rounded transition-all duration-200 ${
+                          chatMode === 'enhance'
+                            ? 'bg-blue-600 text-white'
+                            : 'text-gray-300 hover:text-white'
+                        }`}
+                      >
+                        ✨ Enhance
+                      </button>
+                      <button
+                        onClick={() => setChatMode('direct')}
+                        className={`px-2 py-1 text-xs font-medium rounded transition-all duration-200 ${
+                          chatMode === 'direct'
+                            ? 'bg-blue-600 text-white'
+                            : 'text-gray-300 hover:text-white'
+                        }`}
+                      >
+                        💬 Direct
+                      </button>
+                    </div>
                   </div>
                 </div>
                 
@@ -611,12 +772,40 @@ export function ChatInterface({ onEnhancementComplete, provider, mode, selectedF
                       <Send className="h-4 w-4" />
                     </button>
                   </div>
+                  
+                  {/* Voice Interface - COLLAPSIBLE */}
+                  <div className={`transition-all duration-300 overflow-hidden ${
+                    showBottomControls ? 'max-h-20 opacity-100' : 'max-h-0 opacity-0'
+                  }`}>
+                    <div className="mt-3 pt-3 border-t border-gray-700 dark:border-gray-700">
+                      <VoiceInterface
+                        onTranscript={handleVoiceTranscript}
+                        onSpeak={handleVoiceSpeak}
+                        isListening={isListening}
+                        isSpeaking={isSpeaking}
+                        disabled={isLoading}
+                        onListeningChange={handleListeningChange}
+                        onSpeakingChange={handleSpeakingChange}
+                      />
+                    </div>
+                  </div>
+                  
+                  {/* Toggle Button for Bottom Controls */}
+                  <div className="px-3 py-1">
+                    <button
+                      onClick={() => setShowBottomControls(!showBottomControls)}
+                      className="flex items-center space-x-2 text-gray-400 hover:text-gray-200 text-xs transition-colors"
+                    >
+                      <span>{showBottomControls ? '▼' : '▶'}</span>
+                      <span>Voice Controls</span>
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
           </div>
         ) : (
-          <div className="max-w-5xl mx-auto px-3 sm:px-6 py-4 sm:py-6 pb-16 sm:pb-20">
+          <div className="max-w-5xl mx-auto px-3 sm:px-6 py-4 sm:py-6 pb-96 sm:pb-96">
             {messages.map((message) => (
               <div
                 key={message.id}
@@ -644,6 +833,23 @@ export function ChatInterface({ onEnhancementComplete, provider, mode, selectedF
                         ? 'bg-transparent text-gray-100'
                         : 'bg-yellow-50 dark:bg-yellow-900 text-yellow-900 dark:text-yellow-100'
                   }`}>
+                    {/* Image Display */}
+                    {message.imageUrl && (
+                      <div className="mb-3">
+                        <img 
+                          src={message.imageUrl} 
+                          alt={message.content}
+                          className="max-w-full rounded-lg shadow-md"
+                          style={{ maxHeight: '512px', objectFit: 'contain' }}
+                        />
+                        {message.imageProvider && (
+                          <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                            Generated with {message.imageProvider} {message.imageSize && `(${message.imageSize})`}
+                          </p>
+                        )}
+                      </div>
+                    )}
+                    
                     <div className="whitespace-pre-wrap leading-relaxed text-xs sm:text-sm">
                       {processMessageContent(message.content).split('**').map((part, index) => 
                         index % 2 === 1 ? (
@@ -760,43 +966,132 @@ export function ChatInterface({ onEnhancementComplete, provider, mode, selectedF
       {messages.length > 0 && (
         <div className="fixed bottom-3 sm:bottom-4 left-1/2 transform -translate-x-1/2 w-full max-w-2xl px-3 sm:px-4 z-50">
           <div className="bg-gray-800 dark:bg-gray-800 border border-gray-600 dark:border-gray-600 rounded-xl shadow-lg">
-            {/* Top Row - Provider and Mode Toggle */}
-            <div className="flex items-center justify-between px-3 py-2 border-b border-gray-700 dark:border-gray-700">
-              <div className="flex items-center space-x-2">
-                <select
-                  value={provider}
-                  onChange={(e) => onProviderChange?.(e.target.value)}
-                  className="bg-gray-800 text-gray-100 text-sm font-medium border border-gray-600 rounded-md px-2 py-1 cursor-pointer hover:bg-gray-700 transition-colors"
-                >
-                  <option value="groq" className="bg-gray-800 text-gray-100">⚡ Groq</option>
-                  <option value="openai" className="bg-gray-800 text-gray-100">🧠 OpenAI</option>
-                  <option value="huggingface" className="bg-gray-800 text-gray-100">🤗 Hugging Face</option>
-                  <option value="gemini" className="bg-gray-800 text-gray-100">💎 Gemini</option>
-                </select>
-              </div>
-              
-              {/* Mode Toggle - Clean Design */}
-              <div className="flex bg-gray-700 dark:bg-gray-700 rounded-md p-0.5">
-                <button
-                  onClick={() => setChatMode('enhance')}
-                  className={`px-2 py-1 text-xs font-medium rounded transition-all duration-200 ${
-                    chatMode === 'enhance'
-                      ? 'bg-blue-600 text-white'
-                      : 'text-gray-300 hover:text-white'
-                  }`}
-                >
-                  ✨ Enhance
-                </button>
-                <button
-                  onClick={() => setChatMode('direct')}
-                  className={`px-2 py-1 text-xs font-medium rounded transition-all duration-200 ${
-                    chatMode === 'direct'
-                      ? 'bg-blue-600 text-white'
-                      : 'text-gray-300 hover:text-white'
-                  }`}
-                >
-                  💬 Direct
-                </button>
+            {/* Settings Toggle */}
+            <div className="px-3 py-2 border-b border-gray-700 dark:border-gray-700">
+              <button
+                onClick={() => setShowTopControls(!showTopControls)}
+                className="flex items-center space-x-2 text-gray-400 hover:text-gray-200 text-xs transition-colors"
+              >
+                <span>{showTopControls ? '▼' : '▶'}</span>
+                <span>Settings</span>
+              </button>
+            </div>
+
+            {/* Collapsible Settings: Provider / Folder / Mode / Image */}
+            <div className={`transition-all duration-300 overflow-hidden ${
+              showTopControls ? 'max-h-96 opacity-100' : 'max-h-0 opacity-0'
+            }`}>
+              <div className="px-3 py-2 border-b border-gray-700 dark:border-gray-700 space-y-2">
+                <div className="flex items-center justify-between gap-2">
+                  <div className="flex items-center space-x-2">
+                    <select
+                      value={provider}
+                      onChange={(e) => onProviderChange?.(e.target.value)}
+                      className="bg-gray-800 text-gray-100 text-sm font-medium border border-gray-600 rounded-md px-2 py-1 cursor-pointer hover:bg-gray-700 transition-colors"
+                    >
+                      <option value="groq" className="bg-gray-800 text-gray-100">⚡ Groq</option>
+                      <option value="openai" className="bg-gray-800 text-gray-100">🧠 OpenAI</option>
+                      <option value="huggingface" className="bg-gray-800 text-gray-100">🤗 Hugging Face</option>
+                      <option value="gemini" className="bg-gray-800 text-gray-100">💎 Gemini</option>
+                    </select>
+                  </div>
+
+                  <div className="flex items-center space-x-2">
+                    <select
+                      value={selectedFolderId ?? ''}
+                      onChange={(e) => handleFolderSelect(e.target.value ? e.target.value : null)}
+                      className="bg-gray-800 text-gray-100 text-sm font-medium border border-gray-600 rounded-md px-2 py-1 cursor-pointer hover:bg-gray-700 transition-colors"
+                      title="Save chat to project"
+                    >
+                      <option value="" className="bg-gray-800 text-gray-100">Unorganized</option>
+                      {folders.map((f) => (
+                        <option key={f.id} value={f.id} className="bg-gray-800 text-gray-100">{f.name}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div className="flex bg-gray-700 dark:bg-gray-700 rounded-md p-0.5">
+                    <button
+                      onClick={() => setChatMode('enhance')}
+                      className={`px-2 py-1 text-xs font-medium rounded transition-all duration-200 ${
+                        chatMode === 'enhance'
+                          ? 'bg-blue-600 text-white'
+                          : 'text-gray-300 hover:text-white'
+                      }`}
+                    >
+                      ✨ Enhance
+                    </button>
+                    <button
+                      onClick={() => setChatMode('direct')}
+                      className={`px-2 py-1 text-xs font-medium rounded transition-all duration-200 ${
+                        chatMode === 'direct'
+                          ? 'bg-blue-600 text-white'
+                          : 'text-gray-300 hover:text-white'
+                      }`}
+                    >
+                      💬 Direct
+                    </button>
+                  </div>
+                </div>
+
+                {/* Image Generation Settings */}
+                <div className="flex items-center space-x-2 pt-2 border-t border-gray-700">
+                  <button
+                    onClick={() => setImageMode(!imageMode)}
+                    className={`flex items-center space-x-2 px-2 py-1 text-xs font-medium rounded transition-all duration-200 ${
+                      imageMode
+                        ? 'bg-purple-600 text-white'
+                        : 'bg-gray-700 text-gray-300 hover:text-white'
+                    }`}
+                  >
+                    <ImageIcon className="h-3 w-3" />
+                    <span>{imageMode ? '🎨 Image Mode' : 'Image'}</span>
+                  </button>
+                  
+                  {imageMode && (
+                    <>
+                      <select
+                        value={imageProvider}
+                        onChange={(e) => {
+                          const newProvider = e.target.value as any
+                          setImageProvider(newProvider)
+                          // Reset size to valid default for provider
+                          if (newProvider === 'dall-e-3') {
+                            setImageSize('1024x1024')
+                          } else if (newProvider === 'dall-e-2') {
+                            setImageSize('1024x1024')
+                          }
+                        }}
+                        className="bg-gray-800 text-gray-100 text-xs font-medium border border-gray-600 rounded-md px-2 py-1 cursor-pointer hover:bg-gray-700 transition-colors"
+                      >
+                        <option value="dall-e-3" className="bg-gray-800 text-gray-100">DALL-E 3</option>
+                        <option value="dall-e-2" className="bg-gray-800 text-gray-100">DALL-E 2</option>
+                        <option value="stable-diffusion" className="bg-gray-800 text-gray-100">Stability AI</option>
+                      </select>
+                      {(imageProvider === 'dall-e-3' || imageProvider === 'dall-e-2') && (
+                        <select
+                          value={imageSize}
+                          onChange={(e) => setImageSize(e.target.value as any)}
+                          className="bg-gray-800 text-gray-100 text-xs font-medium border border-gray-600 rounded-md px-2 py-1 cursor-pointer hover:bg-gray-700 transition-colors"
+                        >
+                          {imageProvider === 'dall-e-3' ? (
+                            <>
+                              <option value="1024x1024" className="bg-gray-800 text-gray-100">1024×1024</option>
+                              <option value="1792x1024" className="bg-gray-800 text-gray-100">1792×1024</option>
+                              <option value="1024x1792" className="bg-gray-800 text-gray-100">1024×1792</option>
+                            </>
+                          ) : (
+                            <>
+                              <option value="256x256" className="bg-gray-800 text-gray-100">256×256</option>
+                              <option value="512x512" className="bg-gray-800 text-gray-100">512×512</option>
+                              <option value="1024x1024" className="bg-gray-800 text-gray-100">1024×1024</option>
+                            </>
+                          )}
+                        </select>
+                      )}
+                    </>
+                  )}
+                </div>
               </div>
             </div>
             
@@ -808,11 +1103,19 @@ export function ChatInterface({ onEnhancementComplete, provider, mode, selectedF
                     type="text"
                     value={inputValue}
                     onChange={(e) => setInputValue(e.target.value)}
-                    placeholder={chatMode === 'enhance' ? "Enter your prompt to enhance..." : "Message AI Assistant..."}
+                    placeholder={
+                      imageMode 
+                        ? "Describe the image you want to generate..." 
+                        : chatMode === 'enhance' 
+                        ? "Enter your prompt to enhance..." 
+                        : "Message AI Assistant..."
+                    }
                     className="w-full bg-transparent text-gray-100 placeholder-gray-400 text-sm border-none outline-none resize-none"
                     onKeyDown={(e) => {
                       if (e.key === 'Enter' && inputValue.trim()) {
-                        if (chatMode === 'enhance') {
+                        if (imageMode) {
+                          handleImageGeneration(inputValue.trim())
+                        } else if (chatMode === 'enhance') {
                           handleInitialPrompt(inputValue.trim())
                         } else {
                           handleDirectChat(inputValue.trim())
@@ -822,21 +1125,64 @@ export function ChatInterface({ onEnhancementComplete, provider, mode, selectedF
                     }}
                   />
                 </div>
-                <button
-                  onClick={() => {
-                    if (inputValue.trim()) {
-                      if (chatMode === 'enhance') {
-                        handleInitialPrompt(inputValue.trim())
-                      } else {
-                        handleDirectChat(inputValue.trim())
+                {imageMode ? (
+                  <button
+                    onClick={() => {
+                      if (inputValue.trim()) {
+                        handleImageGeneration(inputValue.trim())
+                        setInputValue('')
                       }
-                      setInputValue('')
-                    }
-                  }}
-                  className="w-8 h-8 bg-blue-600 hover:bg-blue-700 text-white rounded-lg flex items-center justify-center transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
-                  disabled={!inputValue.trim()}
+                    }}
+                    className="w-8 h-8 bg-purple-600 hover:bg-purple-700 text-white rounded-lg flex items-center justify-center transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                    disabled={!inputValue.trim()}
+                  >
+                    <ImageIcon className="h-4 w-4" />
+                  </button>
+                ) : (
+                  <button
+                    onClick={() => {
+                      if (inputValue.trim()) {
+                        if (chatMode === 'enhance') {
+                          handleInitialPrompt(inputValue.trim())
+                        } else {
+                          handleDirectChat(inputValue.trim())
+                        }
+                        setInputValue('')
+                      }
+                    }}
+                    className="w-8 h-8 bg-blue-600 hover:bg-blue-700 text-white rounded-lg flex items-center justify-center transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                    disabled={!inputValue.trim()}
+                  >
+                    <Send className="h-4 w-4" />
+                  </button>
+                )}
+              </div>
+              
+              {/* Voice Interface - COLLAPSIBLE */}
+              <div className={`transition-all duration-300 overflow-hidden ${
+                showBottomControls ? 'max-h-20 opacity-100' : 'max-h-0 opacity-0'
+              }`}>
+                <div className="mt-3 pt-3 border-t border-gray-700 dark:border-gray-700">
+                  <VoiceInterface
+                    onTranscript={handleVoiceTranscript}
+                    onSpeak={handleVoiceSpeak}
+                    isListening={isListening}
+                    isSpeaking={isSpeaking}
+                    disabled={isLoading}
+                    onListeningChange={handleListeningChange}
+                    onSpeakingChange={handleSpeakingChange}
+                  />
+                </div>
+              </div>
+              
+              {/* Toggle Button for Bottom Controls */}
+              <div className="px-3 py-1">
+                <button
+                  onClick={() => setShowBottomControls(!showBottomControls)}
+                  className="flex items-center space-x-2 text-gray-400 hover:text-gray-200 text-xs transition-colors"
                 >
-                  <Send className="h-4 w-4" />
+                  <span>{showBottomControls ? '▼' : '▶'}</span>
+                  <span>Voice Controls</span>
                 </button>
               </div>
             </div>

@@ -107,3 +107,5 @@ npm run dev
 
 **The 404 error means the database tables don't exist yet. Once you run the SQL script above, everything will work!**
 
+
+

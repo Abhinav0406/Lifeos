@@ -88,7 +88,11 @@ export async function POST(request: NextRequest) {
       content, 
       isQuestion = false, 
       questionData = null, 
-      selectedAnswer = null 
+      selectedAnswer = null,
+      imageUrl = null,
+      imageProvider = null,
+      imageSize = null,
+      isImageGeneration = false
     } = await request.json()
 
     if (!conversationId || !role || !content) {
@@ -122,7 +126,11 @@ export async function POST(request: NextRequest) {
         content,
         is_question: isQuestion,
         question_data: questionData,
-        selected_answer: selectedAnswer
+        selected_answer: selectedAnswer,
+        image_url: imageUrl,
+        image_provider: imageProvider,
+        image_size: imageSize,
+        is_image_generation: isImageGeneration
       })
       .select()
       .single()
