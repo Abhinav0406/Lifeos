@@ -48,9 +48,10 @@ interface ChatInterfaceProps {
   onProviderChange?: (provider: string) => void
   onModeChange?: (mode: string) => void
   onToggleSidebar?: () => void
+  sidebarOpen?: boolean
 }
 
-export function ChatInterface({ onEnhancementComplete, provider, mode, selectedFolderId, currentConversationId, onConversationChange, incognitoMode = false, folders = [], onFolderChange, onProviderChange, onModeChange, onToggleSidebar }: ChatInterfaceProps) {
+export function ChatInterface({ onEnhancementComplete, provider, mode, selectedFolderId, currentConversationId, onConversationChange, incognitoMode = false, folders = [], onFolderChange, onProviderChange, onModeChange, onToggleSidebar, sidebarOpen = false }: ChatInterfaceProps) {
   const [messages, setMessages] = useState<ChatMessage[]>([])
   const [currentQuestion, setCurrentQuestion] = useState<Question | null>(null)
   const [isLoading, setIsLoading] = useState(false)
@@ -974,7 +975,9 @@ export function ChatInterface({ onEnhancementComplete, provider, mode, selectedF
 
       {/* Floating Input Field */}
       {messages.length > 0 && (
-        <div className="fixed bottom-3 sm:bottom-4 left-1/2 transform -translate-x-1/2 w-full max-w-2xl px-3 sm:px-4 z-50">
+        <div className={`fixed bottom-3 sm:bottom-4 left-1/2 transform -translate-x-1/2 w-full max-w-2xl px-3 sm:px-4 transition-opacity duration-300 ${
+          sidebarOpen ? 'z-40 sm:z-50 opacity-0 sm:opacity-100 pointer-events-none sm:pointer-events-auto' : 'z-50 opacity-100'
+        }`}>
           <div className="bg-gray-800 dark:bg-gray-800 border border-gray-600 dark:border-gray-600 rounded-xl shadow-lg">
             {/* Settings Toggle */}
             <div className="px-3 py-2 border-b border-gray-700 dark:border-gray-700">

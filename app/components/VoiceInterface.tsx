@@ -188,6 +188,18 @@ export function VoiceInterface({
   const startListening = async () => {
     if (recognitionRef.current && !isListeningRef.current) {
       try {
+        // Check HTTPS requirement
+        if (typeof window !== 'undefined' && window.location.protocol !== 'https:' && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
+          alert('⚠️ Speech recognition requires HTTPS. Please access the site via HTTPS (not HTTP).')
+          return
+        }
+
+        // Check browser support
+        if (typeof window === 'undefined' || (!window.SpeechRecognition && !window.webkitSpeechRecognition)) {
+          alert('❌ Your browser does not support speech recognition. Please use Chrome, Edge, or Safari.')
+          return
+        }
+
         setUserStopped(false)
         isListeningRef.current = true
         
@@ -198,7 +210,28 @@ export function VoiceInterface({
         }
         
         // Request microphone permission first
-        const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
+        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+          alert('❌ Your browser does not support microphone access.')
+          isListeningRef.current = false
+          return
+        }
+
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true }).catch((error) => {
+          console.error('getUserMedia error:', error)
+          isListeningRef.current = false
+          
+          if (error.name === 'NotAllowedError') {
+            alert('⚠️ Microphone permission denied. Please allow microphone access in your browser settings.')
+          } else if (error.name === 'NotFoundError') {
+            alert('❌ No microphone found. Please connect a microphone.')
+          } else if (error.name === 'NotSupportedError') {
+            alert('❌ Your browser does not support audio recording.')
+          } else {
+            alert(`❌ Error accessing microphone: ${error.message || 'Unknown error'}`)
+          }
+          throw error
+        })
+        
         stream.getTracks().forEach(track => track.stop())
         
         recognitionRef.current.start()
@@ -206,7 +239,7 @@ export function VoiceInterface({
       } catch (error) {
         console.error('Error starting speech recognition:', error)
         isListeningRef.current = false
-        alert('Microphone permission denied. Please allow microphone access to use voice features.')
+        onListeningChange?.(false)
       }
     }
   }

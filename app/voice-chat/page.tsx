@@ -36,14 +36,44 @@ export default function VoiceChatPage() {
   }, [])
 
   async function startRecording() {
-    const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
-    const rec = new MediaRecorder(stream)
-    chunksRef.current = []
-    rec.ondataavailable = (e) => { if (e.data.size > 0) chunksRef.current.push(e.data) }
-    rec.onstop = () => { stream.getTracks().forEach(t => t.stop()) }
-    rec.start()
-    mediaRecorderRef.current = rec
-    setRecording(true)
+    try {
+      // Check if running on HTTPS (required for microphone access)
+      if (typeof window !== 'undefined' && window.location.protocol !== 'https:' && window.location.hostname !== 'localhost') {
+        alert('⚠️ Microphone access requires HTTPS. Please access the site via HTTPS (not HTTP).')
+        throw new Error('HTTPS required for microphone access')
+      }
+
+      // Check browser support
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        alert('❌ Your browser does not support microphone access. Please use Chrome, Edge, or Safari.')
+        throw new Error('MediaDevices API not supported')
+      }
+
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true }).catch((error) => {
+        console.error('getUserMedia error:', error)
+        if (error.name === 'NotAllowedError') {
+          alert('⚠️ Microphone permission denied. Please allow microphone access in your browser settings and try again.')
+        } else if (error.name === 'NotFoundError') {
+          alert('❌ No microphone found. Please connect a microphone and try again.')
+        } else if (error.name === 'NotSupportedError') {
+          alert('❌ Your browser does not support audio recording.')
+        } else {
+          alert(`❌ Error accessing microphone: ${error.message}`)
+        }
+        throw error
+      })
+      
+      const rec = new MediaRecorder(stream)
+      chunksRef.current = []
+      rec.ondataavailable = (e) => { if (e.data.size > 0) chunksRef.current.push(e.data) }
+      rec.onstop = () => { stream.getTracks().forEach(t => t.stop()) }
+      rec.start()
+      mediaRecorderRef.current = rec
+      setRecording(true)
+    } catch (error) {
+      console.error('Failed to start recording:', error)
+      setRecording(false)
+    }
   }
 
   function stopRecording(): Promise<Blob> {

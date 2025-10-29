@@ -295,7 +295,7 @@ export default function Home() {
           <div className={`transition-all duration-300 ${
             sidebarCollapsed 
               ? 'w-0 hidden' 
-              : 'w-80 block'
+              : 'w-80 block sm:relative sm:z-auto fixed inset-0 z-[70] sm:static'
           } bg-gray-900 dark:bg-gray-900 border-r border-gray-700 dark:border-gray-700 overflow-hidden`}>
             <Sidebar
               conversations={conversations}
@@ -345,6 +345,7 @@ export default function Home() {
                 onProviderChange={setProvider}
                 onModeChange={setMode}
                 onToggleSidebar={() => setSidebarCollapsed(!sidebarCollapsed)}
+                sidebarOpen={!sidebarCollapsed}
               />
             </main>
           </div>
