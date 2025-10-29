@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
-import { Send, RotateCcw, Copy, Check, Sparkles, User, Bot, Image as ImageIcon, Phone } from 'lucide-react'
+import { Send, RotateCcw, Copy, Check, Sparkles, User, Bot, Image as ImageIcon, Mic } from 'lucide-react'
 import { VoiceInterface } from './VoiceInterface'
 import Link from 'next/link'
 
@@ -744,24 +744,27 @@ export function ChatInterface({ onEnhancementComplete, provider, mode, selectedF
                       className="w-8 h-8 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg flex items-center justify-center transition-all duration-200"
                       title="Voice Chat"
                     >
-                      <Phone className="h-4 w-4" />
+                      <Mic className="h-4 w-4" />
                     </Link>
                     
                     <div className="flex-1">
-                      <input
-                        type="text"
+                      <textarea
+                        rows={1}
                         value={inputValue}
                         onChange={(e) => setInputValue(e.target.value)}
                         placeholder={chatMode === 'enhance' ? "Enter your prompt to enhance..." : "Message AI Assistant..."}
-                        className="w-full bg-transparent text-gray-100 placeholder-gray-400 text-sm border-none outline-none resize-none"
+                        className="w-full bg-transparent text-gray-100 placeholder-gray-400 text-sm border-none outline-none resize-none min-h-[40px] max-h-48 leading-6"
                         onKeyDown={(e) => {
-                          if (e.key === 'Enter' && inputValue.trim()) {
-                            if (chatMode === 'enhance') {
-                              handleInitialPrompt(inputValue.trim())
-                            } else {
-                              handleDirectChat(inputValue.trim())
+                          if (e.key === 'Enter' && !e.shiftKey) {
+                            e.preventDefault()
+                            if (inputValue.trim()) {
+                              if (chatMode === 'enhance') {
+                                handleInitialPrompt(inputValue.trim())
+                              } else {
+                                handleDirectChat(inputValue.trim())
+                              }
+                              setInputValue('')
                             }
-                            setInputValue('')
                           }
                         }}
                       />
@@ -1117,12 +1120,13 @@ export function ChatInterface({ onEnhancementComplete, provider, mode, selectedF
                   className="w-8 h-8 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg flex items-center justify-center transition-all duration-200"
                   title="Voice Chat"
                 >
-                  <Phone className="h-4 w-4" />
+                  <Mic className="h-4 w-4" />
+                  <Mic className="h-4 w-4" />
                 </Link>
                 
                 <div className="flex-1">
-                  <input
-                    type="text"
+                  <textarea
+                    rows={1}
                     value={inputValue}
                     onChange={(e) => setInputValue(e.target.value)}
                     placeholder={
@@ -1132,17 +1136,20 @@ export function ChatInterface({ onEnhancementComplete, provider, mode, selectedF
                         ? "Enter your prompt to enhance..." 
                         : "Message AI Assistant..."
                     }
-                    className="w-full bg-transparent text-gray-100 placeholder-gray-400 text-sm border-none outline-none resize-none"
+                    className="w-full bg-transparent text-gray-100 placeholder-gray-400 text-sm border-none outline-none resize-none min-h-[44px] max-h-48 leading-6"
                     onKeyDown={(e) => {
-                      if (e.key === 'Enter' && inputValue.trim()) {
-                        if (imageMode) {
-                          handleImageGeneration(inputValue.trim())
-                        } else if (chatMode === 'enhance') {
-                          handleInitialPrompt(inputValue.trim())
-                        } else {
-                          handleDirectChat(inputValue.trim())
+                      if (e.key === 'Enter' && !e.shiftKey) {
+                        e.preventDefault()
+                        if (inputValue.trim()) {
+                          if (imageMode) {
+                            handleImageGeneration(inputValue.trim())
+                          } else if (chatMode === 'enhance') {
+                            handleInitialPrompt(inputValue.trim())
+                          } else {
+                            handleDirectChat(inputValue.trim())
+                          }
+                          setInputValue('')
                         }
-                        setInputValue('')
                       }
                     }}
                   />

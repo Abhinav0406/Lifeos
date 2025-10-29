@@ -63,13 +63,13 @@ export default function VoiceChatPage() {
         throw error
       })
       
-      const rec = new MediaRecorder(stream)
-      chunksRef.current = []
-      rec.ondataavailable = (e) => { if (e.data.size > 0) chunksRef.current.push(e.data) }
-      rec.onstop = () => { stream.getTracks().forEach(t => t.stop()) }
-      rec.start()
-      mediaRecorderRef.current = rec
-      setRecording(true)
+    const rec = new MediaRecorder(stream)
+    chunksRef.current = []
+    rec.ondataavailable = (e) => { if (e.data.size > 0) chunksRef.current.push(e.data) }
+    rec.onstop = () => { stream.getTracks().forEach(t => t.stop()) }
+    rec.start()
+    mediaRecorderRef.current = rec
+    setRecording(true)
     } catch (error) {
       console.error('Failed to start recording:', error)
       setRecording(false)
@@ -231,11 +231,11 @@ export default function VoiceChatPage() {
     // TTS
     setIsSpeaking(true)
     try {
-      const ttsRes = await fetch('/api/tts', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text: replyText, voice, format: 'mp3' }),
-      })
+    const ttsRes = await fetch('/api/tts', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text: replyText, voice, format: 'mp3' }),
+    })
       if (!ttsRes.ok) {
         const errorText = await ttsRes.text()
         console.error('TTS API error:', errorText)
@@ -254,7 +254,7 @@ export default function VoiceChatPage() {
         
         throw new Error(`TTS failed: ${errorText}`)
       }
-      const audioBlobReply = await ttsRes.blob()
+    const audioBlobReply = await ttsRes.blob()
       
       // Cleanup old audio if exists
       if (audioUrlRef.current) {
@@ -265,10 +265,10 @@ export default function VoiceChatPage() {
         audioRef.current = null
       }
       
-      const url = URL.createObjectURL(audioBlobReply)
+    const url = URL.createObjectURL(audioBlobReply)
       audioUrlRef.current = url
-      const audio = new Audio(url)
-      audioRef.current = audio
+    const audio = new Audio(url)
+    audioRef.current = audio
       
       audio.onended = () => {
         setIsSpeaking(false)
@@ -407,27 +407,27 @@ export default function VoiceChatPage() {
                 >
                   {recording ? 'Stop' : 'Record'}
                 </button>
-              </div>
-            </div>
+          </div>
+      </div>
 
             {/* Secondary row: voice selection */}
             <div className="flex items-center justify-between gap-3 border-t border-gray-200 px-3 py-2 text-xs text-slate-600 dark:border-slate-800 dark:text-slate-300">
               <div className="opacity-80">Voice</div>
-              <select
+          <select
                 className="w-56 rounded-md border border-gray-300 bg-white p-1.5 text-sm dark:border-slate-700 dark:bg-[#0b1225] dark:text-slate-100"
-                value={voice}
-                onChange={(e) => setVoice(e.target.value)}
-              >
-                {[
-                  'Aaliyah-PlayAI','Adelaide-PlayAI','Angelo-PlayAI','Arista-PlayAI','Atlas-PlayAI',
-                  'Basil-PlayAI','Briggs-PlayAI','Calum-PlayAI','Celeste-PlayAI','Cheyenne-PlayAI',
-                  'Chip-PlayAI','Cillian-PlayAI','Deedee-PlayAI','Eleanor-PlayAI','Fritz-PlayAI',
-                  'Gail-PlayAI','Indigo-PlayAI','Jennifer-PlayAI','Judy-PlayAI','Mamaw-PlayAI',
-                  'Mason-PlayAI','Mikail-PlayAI','Mitch-PlayAI','Nia-PlayAI','Quinn-PlayAI',
-                  'Ruby-PlayAI','Thunder-PlayAI',
-                ].map(v => (<option key={v} value={v}>{v}</option>))}
-              </select>
-            </div>
+            value={voice}
+            onChange={(e) => setVoice(e.target.value)}
+          >
+            {[
+              'Aaliyah-PlayAI','Adelaide-PlayAI','Angelo-PlayAI','Arista-PlayAI','Atlas-PlayAI',
+              'Basil-PlayAI','Briggs-PlayAI','Calum-PlayAI','Celeste-PlayAI','Cheyenne-PlayAI',
+              'Chip-PlayAI','Cillian-PlayAI','Deedee-PlayAI','Eleanor-PlayAI','Fritz-PlayAI',
+              'Gail-PlayAI','Indigo-PlayAI','Jennifer-PlayAI','Judy-PlayAI','Mamaw-PlayAI',
+              'Mason-PlayAI','Mikail-PlayAI','Mitch-PlayAI','Nia-PlayAI','Quinn-PlayAI',
+              'Ruby-PlayAI','Thunder-PlayAI',
+            ].map(v => (<option key={v} value={v}>{v}</option>))}
+          </select>
+        </div>
           </div>
         </div>
       </div>

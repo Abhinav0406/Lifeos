@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { useAuth } from './AuthProvider'
-import { Eye, EyeOff, Mail, Lock, User } from 'lucide-react'
+import { Eye, EyeOff, Mail, Lock, User, Chrome } from 'lucide-react'
 
 interface AuthModalProps {
   isOpen: boolean
@@ -12,7 +12,7 @@ interface AuthModalProps {
 }
 
 export function AuthModal({ isOpen, onClose, mode, onModeChange }: AuthModalProps) {
-  const { signIn, signUp } = useAuth()
+  const { signIn, signUp, signInWithGoogle } = useAuth()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [name, setName] = useState('')
@@ -141,6 +141,21 @@ export function AuthModal({ isOpen, onClose, mode, onModeChange }: AuthModalProp
             {loading ? 'Loading...' : mode === 'signin' ? 'Sign In' : 'Sign Up'}
           </button>
         </form>
+
+        <div className="mt-4">
+          <div className="flex items-center justify-center mb-3">
+            <div className="h-[1px] w-full bg-gray-300 dark:bg-gray-700" />
+            <span className="px-2 text-xs text-gray-500 dark:text-gray-400">or</span>
+            <div className="h-[1px] w-full bg-gray-300 dark:bg-gray-700" />
+          </div>
+          <button
+            onClick={() => signInWithGoogle()}
+            className="w-full bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white py-2 px-4 rounded-md transition-colors hover:bg-gray-50 dark:hover:bg-gray-600 flex items-center justify-center space-x-2"
+          >
+            <Chrome className="h-4 w-4" />
+            <span>{mode === 'signin' ? 'Sign in with Google' : 'Sign up with Google'}</span>
+          </button>
+        </div>
 
         <div className="mt-4 text-center">
           <button

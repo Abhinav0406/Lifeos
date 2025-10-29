@@ -2,13 +2,15 @@ const withPWA = require('next-pwa')({
   dest: 'public',
   register: true,
   skipWaiting: true,
-  disable: false, // Enable PWA in development for testing
+  // Enable PWA in development for testing on Windows (port 3001)
+  disable: false,
   buildExcludes: [/middleware-manifest\.json$/],
   cacheOnFrontEndNav: true,
   reloadOnOnline: true,
   sw: 'sw.js',
   scope: '/',
-  runtimeCaching: [
+  // Disable aggressive caching in development to prevent file lock issues
+  runtimeCaching: process.env.NODE_ENV === 'production' ? [
     {
       urlPattern: /^https?.*/,
       handler: 'NetworkFirst',
@@ -19,7 +21,9 @@ const withPWA = require('next-pwa')({
         },
       },
     },
-  ],
+  ] : [],
+  // Prevent service worker from interfering with dev hot reload
+  disableDevLogs: false,
 })
 
 /** @type {import('next').NextConfig} */
