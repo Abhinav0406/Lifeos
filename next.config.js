@@ -2,10 +2,12 @@ const withPWA = require('next-pwa')({
   dest: 'public',
   register: true,
   skipWaiting: true,
-  disable: process.env.NODE_ENV === 'development',
+  disable: false, // Enable PWA in development for testing
   buildExcludes: [/middleware-manifest\.json$/],
   cacheOnFrontEndNav: true,
   reloadOnOnline: true,
+  sw: 'sw.js',
+  scope: '/',
   runtimeCaching: [
     {
       urlPattern: /^https?.*/,

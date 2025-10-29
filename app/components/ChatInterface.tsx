@@ -1,8 +1,9 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
-import { Send, RotateCcw, Copy, Check, Sparkles, User, Bot, Image as ImageIcon } from 'lucide-react'
+import { Send, RotateCcw, Copy, Check, Sparkles, User, Bot, Image as ImageIcon, Phone } from 'lucide-react'
 import { VoiceInterface } from './VoiceInterface'
+import Link from 'next/link'
 
 interface Question {
   question: string
@@ -736,6 +737,15 @@ export function ChatInterface({ onEnhancementComplete, provider, mode, selectedF
                 {/* Input Area */}
                 <div className="p-3">
                   <div className="flex items-center space-x-2">
+                    {/* Voice Chat Navigation Button */}
+                    <Link
+                      href="/voice-chat"
+                      className="w-8 h-8 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg flex items-center justify-center transition-all duration-200"
+                      title="Voice Chat"
+                    >
+                      <Phone className="h-4 w-4" />
+                    </Link>
+                    
                     <div className="flex-1">
                       <input
                         type="text"
@@ -1098,6 +1108,15 @@ export function ChatInterface({ onEnhancementComplete, provider, mode, selectedF
             {/* Input Area */}
             <div className="p-3">
               <div className="flex items-center space-x-2">
+                {/* Voice Chat Navigation Button */}
+                <Link
+                  href="/voice-chat"
+                  className="w-8 h-8 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg flex items-center justify-center transition-all duration-200"
+                  title="Voice Chat"
+                >
+                  <Phone className="h-4 w-4" />
+                </Link>
+                
                 <div className="flex-1">
                   <input
                     type="text"
