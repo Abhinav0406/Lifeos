@@ -191,11 +191,12 @@ async function handleFunctionCall(call: any, functionCall: any) {
           error: 'Unknown function'
         }
     }
-  } catch (error) {
+  } catch (error: unknown) {
     console.error('Error handling function call:', error)
+    const message = error instanceof Error ? error.message : String(error)
     return {
       success: false,
-      error: error.message
+      error: message
     }
   }
 }

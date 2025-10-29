@@ -28,7 +28,7 @@ export function SpeechTest() {
           setIsListening(true)
         }
         
-        recognitionInstance.onresult = (event) => {
+        recognitionInstance.onresult = (event: any) => {
           let finalTranscript = ''
           let interimTranscript = ''
           
@@ -51,7 +51,7 @@ export function SpeechTest() {
           }
         }
         
-        recognitionInstance.onerror = (event) => {
+        recognitionInstance.onerror = (event: any) => {
           addLog(`❌ Error: ${event.error}`)
           if (event.error === 'no-speech') {
             addLog('💭 No speech detected (normal during silence)')

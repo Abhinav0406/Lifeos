@@ -27,7 +27,7 @@ export function NetworkTest() {
           setIsListening(true)
         }
         
-        recognitionInstance.onresult = (event) => {
+        recognitionInstance.onresult = (event: any) => {
           let finalTranscript = ''
           for (let i = event.resultIndex; i < event.results.length; i++) {
             if (event.results[i].isFinal) {
@@ -39,7 +39,7 @@ export function NetworkTest() {
           }
         }
         
-        recognitionInstance.onerror = (event) => {
+        recognitionInstance.onerror = (event: any) => {
           addLog(`❌ Error: ${event.error}`)
         }
         
