@@ -1,6 +1,6 @@
 {
-  "name": "AI Wrapper - Prompt Enhancement Tool",
-  "short_name": "AI Wrapper",
+  "name": "Lifeos - Prompt Enhancement Tool",
+  "short_name": "Lifeos",
   "description": "Enhance your AI prompts with intelligent questioning and organized folder management",
   "start_url": "/",
   "display": "standalone",
@@ -12,21 +12,21 @@
   "categories": ["productivity", "utilities", "education"],
   "icons": [
     {
-      "src": "/icons/icon.svg",
-      "sizes": "any",
-      "type": "image/svg+xml",
-      "purpose": "maskable any"
-    },
-    {
-      "src": "/icons/icon.svg",
+      "src": "/icons/lifeos2.png",
       "sizes": "192x192",
-      "type": "image/svg+xml",
+      "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "/icons/icon.svg",
+      "src": "/icons/lifeos2.png",
       "sizes": "512x512",
-      "type": "image/svg+xml",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/lifeos2.png",
+      "sizes": "1024x1024",
+      "type": "image/png",
       "purpose": "any"
     }
   ],
@@ -36,36 +36,21 @@
       "short_name": "New Chat",
       "description": "Start a new conversation",
       "url": "/?action=new-chat",
-      "icons": [
-        {
-          "src": "/icons/icon.svg",
-          "sizes": "any"
-        }
-      ]
+      "icons": [{ "src": "/icons/lifeos2.png", "sizes": "192x192", "type": "image/png" }]
     },
     {
       "name": "Voice Chat",
       "short_name": "Voice Chat",
       "description": "Start a voice conversation",
       "url": "/voice-chat",
-      "icons": [
-        {
-          "src": "/icons/icon.svg",
-          "sizes": "any"
-        }
-      ]
+      "icons": [{ "src": "/icons/lifeos2.png", "sizes": "192x192", "type": "image/png" }]
     },
     {
       "name": "All Prompts",
       "short_name": "All Prompts",
       "description": "View all your prompts",
       "url": "/?action=all-prompts",
-      "icons": [
-        {
-          "src": "/icons/icon.svg",
-          "sizes": "any"
-        }
-      ]
+      "icons": [{ "src": "/icons/lifeos2.png", "sizes": "192x192", "type": "image/png" }]
     }
   ],
   "screenshots": [

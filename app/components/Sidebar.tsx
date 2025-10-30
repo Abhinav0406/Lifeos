@@ -207,8 +207,22 @@ export function Sidebar({ conversations, onLoadConversation, onDeleteConversatio
     <div className="w-80 lg:w-80 md:w-72 sm:w-full bg-gray-900 dark:bg-gray-900 h-full flex flex-col">
       {/* Header Section */}
       <div className="p-2 sm:p-3">
-        {/* Close/Collapse Button */}
-        <div className="flex justify-end mb-2">
+        {/* Brand */}
+        <div className="flex items-center justify-between mb-2">
+          <div className="flex items-center space-x-2">
+            <img
+              src="/icons/lifeos2.png"
+              alt="Lifeos"
+              className="w-6 h-6 rounded-md"
+              onError={(e) => {
+                const target = e.currentTarget as HTMLImageElement
+                target.onerror = null
+                target.src = '/favicon.svg'
+              }}
+            />
+            <span className="text-white text-sm font-semibold">Lifeos</span>
+          </div>
+          {/* Close/Collapse Button */}
           <button
             onClick={() => onSidebarClose?.()}
             className="p-2 text-gray-400 hover:text-gray-200 hover:bg-gray-800 rounded-lg transition-colors"

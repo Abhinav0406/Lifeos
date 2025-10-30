@@ -14,32 +14,32 @@ export const viewport: Viewport = {
 }
 
 export const metadata: Metadata = {
-  title: 'AI Wrapper - Prompt Enhancement Tool',
+  title: 'Lifeos - Prompt Enhancement Tool',
   description: 'Enhance your AI prompts with intelligent questioning and organized folder management. Support for OpenAI, Groq, Gemini, and Hugging Face.',
   keywords: ['AI', 'prompt', 'enhancement', 'OpenAI', 'Groq', 'Gemini', 'Hugging Face'],
-  authors: [{ name: 'AI Wrapper Team' }],
-  creator: 'AI Wrapper',
-  publisher: 'AI Wrapper',
+  authors: [{ name: 'Lifeos Team' }],
+  creator: 'Lifeos',
+  publisher: 'Lifeos',
   formatDetection: {
     email: false,
     address: false,
     telephone: false,
   },
-  metadataBase: new URL('https://ai-wrapper.vercel.app'),
+  metadataBase: new URL('https://lifeos.app'),
   alternates: {
     canonical: '/',
   },
   openGraph: {
-    title: 'AI Wrapper - Prompt Enhancement Tool',
+    title: 'Lifeos - Prompt Enhancement Tool',
     description: 'Enhance your AI prompts with intelligent questioning and organized folder management',
-    url: 'https://ai-wrapper.vercel.app',
-    siteName: 'AI Wrapper',
+    url: 'https://lifeos.app',
+    siteName: 'Lifeos',
     images: [
       {
         url: '/og-image.png',
         width: 1200,
         height: 630,
-        alt: 'AI Wrapper - Prompt Enhancement Tool',
+        alt: 'Lifeos - Prompt Enhancement Tool',
       },
     ],
     locale: 'en_US',
@@ -47,7 +47,7 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'AI Wrapper - Prompt Enhancement Tool',
+    title: 'Lifeos - Prompt Enhancement Tool',
     description: 'Enhance your AI prompts with intelligent questioning and organized folder management',
     images: ['/og-image.png'],
   },
@@ -64,14 +64,14 @@ export const metadata: Metadata = {
   },
   manifest: '/manifest.json',
   icons: {
-    icon: '/favicon.ico',
+    icon: ['/favicon.ico', '/icons/lifeos2.png'],
     shortcut: '/favicon-16x16.png',
-    apple: '/apple-touch-icon.png',
+    apple: ['/apple-touch-icon.png', '/icons/lifeos2.png'],
   },
   appleWebApp: {
     capable: true,
     statusBarStyle: 'default',
-    title: 'AI Wrapper',
+    title: 'Lifeos',
   },
 }
 

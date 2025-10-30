@@ -73,6 +73,8 @@ export function ChatInterface({ onEnhancementComplete, provider, mode, selectedF
   const [inputValue, setInputValue] = useState('')
   const sttBaseTextRef = useRef<string>('')
   const messagesEndRef = useRef<HTMLDivElement>(null)
+  const messagesScrollRef = useRef<HTMLDivElement>(null)
+  const [isAtBottom, setIsAtBottom] = useState(true)
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -81,6 +83,20 @@ export function ChatInterface({ onEnhancementComplete, provider, mode, selectedF
   useEffect(() => {
     scrollToBottom()
   }, [messages])
+
+  useEffect(() => {
+    const el = messagesScrollRef.current
+    if (!el) return
+    const handleScroll = () => {
+      const threshold = 80
+      const distanceFromBottom = el.scrollHeight - (el.scrollTop + el.clientHeight)
+      setIsAtBottom(distanceFromBottom <= threshold)
+    }
+    el.addEventListener('scroll', handleScroll)
+    // Run once to init
+    handleScroll()
+    return () => el.removeEventListener('scroll', handleScroll)
+  }, [])
 
   // Load conversation messages when conversationId changes
   useEffect(() => {
@@ -643,7 +659,7 @@ export function ChatInterface({ onEnhancementComplete, provider, mode, selectedF
     <div className="flex flex-col h-full bg-gray-800 dark:bg-gray-800 font-sans">
 
       {/* Chat Messages */}
-      <div className="flex-1 overflow-y-auto">
+      <div className="flex-1 overflow-y-auto" ref={messagesScrollRef}>
         {messages.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full px-6">
             {/* Floating Hamburger Menu for Empty State */}
@@ -1012,7 +1028,7 @@ export function ChatInterface({ onEnhancementComplete, provider, mode, selectedF
       </div>
 
       {/* Floating Input Field */}
-      {messages.length > 0 && (
+      {messages.length > 0 && isAtBottom && (
         <div className={`fixed bottom-3 sm:bottom-4 left-1/2 transform -translate-x-1/2 w-full max-w-2xl px-3 sm:px-4 transition-opacity duration-300 ${
           sidebarOpen ? 'z-40 sm:z-50 opacity-0 sm:opacity-100 pointer-events-none sm:pointer-events-auto' : 'z-50 opacity-100'
         }`}>

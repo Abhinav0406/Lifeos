@@ -240,11 +240,16 @@ export default function Home() {
   }
 
   return (
-    <div className="min-h-screen relative transition-colors font-sans bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50 dark:bg-gray-900">
+    <div className="min-h-screen relative transition-colors font-sans bg-gradient-to-br from-slate-50 via-violet-50 to-sky-50 dark:bg-gray-900">
       {/* Soft background gradient for visual depth */}
-      <div aria-hidden className="pointer-events-none absolute inset-0 opacity-70 dark:opacity-30">
-        <div className="absolute -top-24 -left-24 h-96 w-96 rounded-full blur-3xl bg-indigo-300/50 dark:bg-indigo-500/10"></div>
-        <div className="absolute bottom-0 right-0 h-[28rem] w-[28rem] rounded-full blur-3xl bg-pink-300/40 dark:bg-purple-500/10"></div>
+      <div aria-hidden className="pointer-events-none absolute inset-0 opacity-60 dark:opacity-0">
+        <div className="absolute -top-24 -left-24 h-96 w-96 rounded-full blur-3xl bg-sky-200/40"></div>
+        <div className="absolute bottom-0 right-0 h-[28rem] w-[28rem] rounded-full blur-3xl bg-violet-200/40"></div>
+      </div>
+
+      {/* Theme toggle - global */}
+      <div className="fixed top-4 right-4 z-50">
+        <ThemeToggle />
       </div>
       {!user ? (
         // New landing for non-authenticated users
@@ -253,8 +258,23 @@ export default function Home() {
             {/* Left: Hero */}
             <div className="flex flex-col justify-center">
               <span className="inline-flex items-center px-3 py-1 rounded-full bg-fuchsia-100 text-fuchsia-700 dark:bg-fuchsia-900/40 dark:text-fuchsia-300 w-max text-xs mb-4 shadow-sm ring-1 ring-fuchsia-600/10">New! Prompt Enhancement</span>
+              <div className="flex items-center space-x-3 mb-2">
+                <img
+                  src="/icons/lifeos2.png"
+                  alt="Lifeos logo"
+                  width={64}
+                  height={64}
+                  className="rounded-xl shadow-sm"
+                  onError={(e) => {
+                    const target = e.currentTarget as HTMLImageElement
+                    target.onerror = null
+                    target.src = '/favicon.svg'
+                  }}
+                />
+                <span className="sr-only">Lifeos</span>
+              </div>
               <h1 className="text-3xl leading-snug md:text-4xl md:leading-tight font-extrabold tracking-tight text-gray-900 dark:text-white mb-3">
-                PromptPolish
+                Lifeos
                 <span className="block text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 to-purple-600 dark:from-indigo-400 dark:to-purple-400">Your Prompts, Elevated</span>
               </h1>
               <p className="text-gray-600 dark:text-gray-400 text-sm md:text-base mb-6 max-w-xl">
