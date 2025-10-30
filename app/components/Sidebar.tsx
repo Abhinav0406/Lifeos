@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useAuth } from './AuthProvider'
 import { supabase, Folder, EnhancementResult } from '@/app/lib/supabase'
 import { 
@@ -53,6 +53,10 @@ export function Sidebar({ conversations, onLoadConversation, onDeleteConversatio
   const [newFolderColor, setNewFolderColor] = useState('#3B82F6')
   const [copiedField, setCopiedField] = useState<string | null>(null)
   const [editingFolder, setEditingFolder] = useState<string | null>(null)
+  const [isSearchOpen, setIsSearchOpen] = useState(false)
+  const [searchQuery, setSearchQuery] = useState('')
+  const searchInputRef = useRef<HTMLInputElement | null>(null)
+  const [projectsOpen, setProjectsOpen] = useState(true)
 
   const colors = [
     '#3B82F6', '#EF4444', '#10B981', '#F59E0B', 
@@ -64,6 +68,13 @@ export function Sidebar({ conversations, onLoadConversation, onDeleteConversatio
       fetchFolders()
     }
   }, [user])
+
+  useEffect(() => {
+    if (isSearchOpen) {
+      // focus input when search opens
+      setTimeout(() => searchInputRef.current?.focus(), 0)
+    }
+  }, [isSearchOpen])
 
 
   const fetchFolders = async () => {
@@ -175,6 +186,12 @@ export function Sidebar({ conversations, onLoadConversation, onDeleteConversatio
     return text.length > maxLength ? text.substring(0, maxLength) + '...' : text
   }
 
+  const filteredConversations = (searchQuery ? conversations.filter((c) => {
+    const title = (c.title || '').toLowerCase()
+    const query = searchQuery.toLowerCase()
+    return title.includes(query)
+  }) : conversations)
+
   if (!user) {
     return (
       <div className="w-64 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 h-full flex items-center justify-center">
@@ -219,74 +236,48 @@ export function Sidebar({ conversations, onLoadConversation, onDeleteConversatio
         </button>
         
         {/* Search Chats */}
-        <button className="w-full flex items-center space-x-2 sm:space-x-3 px-3 sm:px-4 py-2 text-gray-300 hover:bg-gray-800 dark:hover:bg-gray-800 rounded-lg transition-colors text-xs sm:text-sm mt-1">
+        <button 
+          onClick={() => setIsSearchOpen((v) => !v)}
+          className="w-full flex items-center space-x-2 sm:space-x-3 px-3 sm:px-4 py-2 text-gray-300 hover:bg-gray-800 dark:hover:bg-gray-800 rounded-lg transition-colors text-xs sm:text-sm mt-1"
+        >
           <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
           </svg>
           <span className="hidden sm:block">Search chats</span>
           <span className="sm:hidden">Search</span>
         </button>
+        {isSearchOpen && (
+          <div className="mt-2 px-3 sm:px-4">
+            <input
+              ref={searchInputRef}
+              type="text"
+              placeholder="Type to filter conversations..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full text-sm bg-gray-800 text-white border border-gray-700 rounded px-2 py-1 outline-none"
+            />
+          </div>
+        )}
         
         {/* Library */}
-        <button className="w-full flex items-center space-x-2 sm:space-x-3 px-3 sm:px-4 py-2 text-gray-300 hover:bg-gray-800 dark:hover:bg-gray-800 rounded-lg transition-colors text-xs sm:text-sm">
-          <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
-          </svg>
-          <span>Library</span>
-        </button>
+       
         
-        {/* PWA Install Button - For Testing */}
+        {/* Projects Toggle */}
         <button 
-          onClick={() => {
-            // Trigger PWA install prompt manually
-            if ('serviceWorker' in navigator) {
-              navigator.serviceWorker.ready.then(() => {
-                // Show install prompt
-                const event = new CustomEvent('beforeinstallprompt')
-                window.dispatchEvent(event)
-              })
-            }
-          }}
-          className="w-full flex items-center space-x-2 sm:space-x-3 px-3 sm:px-4 py-2 text-gray-300 hover:bg-gray-800 dark:hover:bg-gray-800 rounded-lg transition-colors text-xs sm:text-sm"
+          onClick={() => setProjectsOpen(v => !v)}
+          className="w-full flex items-center justify-between px-3 sm:px-4 py-2 text-gray-300 hover:bg-gray-800 dark:hover:bg-gray-800 rounded-lg transition-colors text-xs sm:text-sm"
         >
-          <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 18l9-5-9-5-9 5 9 5z" />
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 2l9 5-9 5-9-5 9-5z" />
-          </svg>
-          <span className="hidden sm:block">Install App</span>
-          <span className="sm:hidden">Install</span>
-        </button>
-        
-        {/* Direct Message Toggle */}
-        <button 
-          onClick={onToggleIncognito}
-          className={`w-full flex items-center justify-between px-3 sm:px-4 py-2 rounded-lg transition-colors text-xs sm:text-sm ${
-            incognitoMode 
-              ? 'bg-gray-800 text-white' 
-              : 'text-gray-300 hover:bg-gray-800'
-          }`}
-        >
-          <div className="flex items-center space-x-2 sm:space-x-3">
+          <span className="flex items-center space-x-2 sm:space-x-3">
             <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2H5a2 2 0 00-2-2z" />
             </svg>
-            <span className="hidden sm:block">Direct message</span>
-            <span className="sm:hidden">Direct</span>
-          </div>
-          <div className={`w-4 h-4 rounded-full border-2 transition-colors ${
-            incognitoMode 
-              ? 'bg-blue-600 border-blue-600' 
-              : 'border-gray-400'
-          }`}>
-            {incognitoMode && (
-              <svg className="w-full h-full text-white" fill="currentColor" viewBox="0 0 20 20">
-                <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-              </svg>
-            )}
-          </div>
+            <span>Projects</span>
+          </span>
+          <span className="text-gray-400">{projectsOpen ? '▼' : '▶'}</span>
         </button>
-        
+
         {/* Projects Section */}
+        {projectsOpen && (
         <div className="space-y-1">
           {/* All Prompts */}
           <button
@@ -444,6 +435,7 @@ export function Sidebar({ conversations, onLoadConversation, onDeleteConversatio
             </div>
           )}
         </div>
+        )}
       </div>
 
       {/* Conversations Section */}
@@ -451,11 +443,13 @@ export function Sidebar({ conversations, onLoadConversation, onDeleteConversatio
         <div className="mb-3">
           <h3 className="text-gray-400 text-xs sm:text-sm font-medium mb-2">Recent</h3>
           
-          {conversations.length === 0 ? (
+          {(searchQuery ? filteredConversations.length === 0 : conversations.length === 0) ? (
             <div className="text-center py-6">
               <Clock className="h-8 w-8 text-gray-400 mx-auto mb-2" />
               <p className="text-gray-400 text-sm font-medium">
-                {selectedFolderId === null ? 'No conversations yet' : 'No conversations in this folder'}
+                {searchQuery
+                  ? 'No conversations match your search'
+                  : selectedFolderId === null ? 'No conversations yet' : 'No conversations in this folder'}
               </p>
               <p className="text-gray-500 text-xs mt-1">
                 Start a new conversation to see it here
@@ -463,7 +457,7 @@ export function Sidebar({ conversations, onLoadConversation, onDeleteConversatio
             </div>
           ) : (
             <div className="space-y-1">
-              {conversations.map((conversation, index) => (
+              {filteredConversations.map((conversation, index) => (
                 <div
                   key={conversation.id}
                   className="group px-2 sm:px-3 py-2 rounded-lg hover:bg-gray-800 transition-colors cursor-pointer"
@@ -515,9 +509,6 @@ export function Sidebar({ conversations, onLoadConversation, onDeleteConversatio
             </div>
           </div>
           <div className="flex items-center space-x-1 sm:space-x-2">
-            <button className="px-2 sm:px-3 py-1 bg-gray-700 text-white text-xs rounded hover:bg-gray-600 transition-colors hidden sm:block">
-              Upgrade
-            </button>
             <button
               onClick={() => signOut()}
               className="p-1 sm:p-1.5 text-gray-400 hover:text-gray-200 hover:bg-gray-800 rounded transition-colors"

@@ -1,6 +1,9 @@
 import type { Metadata, Viewport } from 'next'
 import './globals.css'
 import { ThemeProvider } from './components/ThemeProvider'
+import { Inter } from 'next/font/google'
+
+const inter = Inter({ subsets: ['latin'], display: 'swap' })
 import { AuthProvider } from './components/AuthProvider'
 
 export const viewport: Viewport = {
@@ -111,7 +114,7 @@ export default function RootLayout({
         <meta property="og:url" content="https://ai-wrapper.vercel.app" />
         <meta property="og:image" content="/icons/icon-512x512.png" />
       </head>
-      <body>
+      <body className={inter.className}>
         <AuthProvider>
           <ThemeProvider>
             {children}

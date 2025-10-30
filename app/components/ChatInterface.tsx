@@ -71,6 +71,7 @@ export function ChatInterface({ onEnhancementComplete, provider, mode, selectedF
     setChatMode(incognitoMode ? 'direct' : 'enhance')
   }, [incognitoMode])
   const [inputValue, setInputValue] = useState('')
+  const sttBaseTextRef = useRef<string>('')
   const messagesEndRef = useRef<HTMLDivElement>(null)
 
   const scrollToBottom = () => {
@@ -529,17 +530,19 @@ export function ChatInterface({ onEnhancementComplete, provider, mode, selectedF
   }
 
   const handleVoiceTranscript = (text: string) => {
-    console.log('Voice transcript received:', text)
-    if (text.trim()) {
-      setInputValue(text)
-      // Auto-send voice input
-      if (chatMode === 'enhance') {
-        handleInitialPrompt(text.trim())
-      } else {
-        handleDirectChat(text.trim())
-      }
-      setInputValue('')
-    }
+    // Finalized chunk: append to the committed base and reflect in the input
+    const clean = text.trim()
+    if (!clean) return
+    const prefix = sttBaseTextRef.current ? sttBaseTextRef.current + ' ' : ''
+    sttBaseTextRef.current = (prefix + clean).trim()
+    setInputValue(sttBaseTextRef.current)
+  }
+
+  const handleInterimTranscript = (text: string) => {
+    // Interim transcript: show live in the input without committing
+    const clean = text.trim()
+    const prefix = sttBaseTextRef.current ? sttBaseTextRef.current + ' ' : ''
+    setInputValue((prefix + clean).trim())
   }
 
   const handleVoiceSpeak = (text: string) => {
@@ -547,8 +550,14 @@ export function ChatInterface({ onEnhancementComplete, provider, mode, selectedF
   }
 
   const handleListeningChange = (listening: boolean) => {
-    console.log('Listening state changed:', listening)
     setIsListening(listening)
+    if (listening) {
+      // Capture current content to preserve while dictating
+      sttBaseTextRef.current = inputValue.trim()
+    } else {
+      // Stop interim overlay when mic stops
+      setInputValue(sttBaseTextRef.current)
+    }
   }
 
   const handleSpeakingChange = (speaking: boolean) => {
@@ -679,7 +688,7 @@ export function ChatInterface({ onEnhancementComplete, provider, mode, selectedF
                 <div className={`transition-all duration-300 overflow-hidden ${
                   showTopControls ? 'max-h-20 opacity-100' : 'max-h-0 opacity-0'
                 }`}>
-                  <div className="flex items-center justify-between px-3 py-2 border-b border-gray-700 dark:border-gray-700 gap-2">
+                  <div className="flex items-center px-3 py-2 border-b border-gray-700 dark:border-gray-700 gap-2 overflow-x-auto whitespace-nowrap">
                     {/* Provider Selection */}
                     <div className="flex items-center space-x-2">
                       <select
@@ -710,7 +719,7 @@ export function ChatInterface({ onEnhancementComplete, provider, mode, selectedF
                     </div>
 
                     {/* Mode Toggle */}
-                    <div className="flex bg-gray-700 dark:bg-gray-700 rounded-md p-0.5">
+                    <div className="flex bg-gray-700 dark:bg-gray-700 rounded-md p-0.5 shrink-0">
                       <button
                         onClick={() => setChatMode('enhance')}
                         className={`px-2 py-1 text-xs font-medium rounded transition-all duration-200 ${
@@ -738,6 +747,31 @@ export function ChatInterface({ onEnhancementComplete, provider, mode, selectedF
                 {/* Input Area */}
                 <div className="p-3">
                   <div className="flex items-center space-x-2">
+                    {/* Mobile Mode Toggle - always visible on small screens */}
+                    <div className="sm:hidden flex bg-gray-700 dark:bg-gray-700 rounded-md p-0.5">
+                      <button
+                        onClick={() => setChatMode('enhance')}
+                        title="Enhance"
+                        className={`px-2 py-1 text-xs font-medium rounded transition-all duration-200 ${
+                          chatMode === 'enhance'
+                            ? 'bg-blue-600 text-white'
+                            : 'text-gray-300 hover:text-white'
+                        }`}
+                      >
+                        ✨
+                      </button>
+                      <button
+                        onClick={() => setChatMode('direct')}
+                        title="Direct message"
+                        className={`px-2 py-1 text-xs font-medium rounded transition-all duration-200 ${
+                          chatMode === 'direct'
+                            ? 'bg-blue-600 text-white'
+                            : 'text-gray-300 hover:text-white'
+                        }`}
+                      >
+                        💬
+                      </button>
+                    </div>
                     {/* Voice Chat Navigation Button */}
                     <Link
                       href="/voice-chat"
@@ -795,6 +829,7 @@ export function ChatInterface({ onEnhancementComplete, provider, mode, selectedF
                       <VoiceInterface
                         onTranscript={handleVoiceTranscript}
                         onSpeak={handleVoiceSpeak}
+                        onInterimTranscript={handleInterimTranscript}
                         isListening={isListening}
                         isSpeaking={isSpeaking}
                         disabled={isLoading}
@@ -998,7 +1033,7 @@ export function ChatInterface({ onEnhancementComplete, provider, mode, selectedF
               showTopControls ? 'max-h-96 opacity-100' : 'max-h-0 opacity-0'
             }`}>
               <div className="px-3 py-2 border-b border-gray-700 dark:border-gray-700 space-y-2">
-                <div className="flex items-center justify-between gap-2">
+                <div className="flex items-center gap-2 overflow-x-auto whitespace-nowrap">
                   <div className="flex items-center space-x-2">
                     <select
                       value={provider}
@@ -1026,7 +1061,7 @@ export function ChatInterface({ onEnhancementComplete, provider, mode, selectedF
                     </select>
                   </div>
 
-                  <div className="flex bg-gray-700 dark:bg-gray-700 rounded-md p-0.5">
+                  <div className="flex bg-gray-700 dark:bg-gray-700 rounded-md p-0.5 shrink-0">
                     <button
                       onClick={() => setChatMode('enhance')}
                       className={`px-2 py-1 text-xs font-medium rounded transition-all duration-200 ${
@@ -1113,14 +1148,38 @@ export function ChatInterface({ onEnhancementComplete, provider, mode, selectedF
             
             {/* Input Area */}
             <div className="p-3">
-              <div className="flex items-center space-x-2">
+            <div className="flex items-center space-x-2">
+              {/* Mobile Mode Toggle - always visible on small screens */}
+              <div className="sm:hidden flex bg-gray-700 dark:bg-gray-700 rounded-md p-0.5">
+                <button
+                  onClick={() => setChatMode('enhance')}
+                  title="Enhance"
+                  className={`px-2 py-1 text-xs font-medium rounded transition-all duration-200 ${
+                    chatMode === 'enhance'
+                      ? 'bg-blue-600 text-white'
+                      : 'text-gray-300 hover:text-white'
+                  }`}
+                >
+                  ✨
+                </button>
+                <button
+                  onClick={() => setChatMode('direct')}
+                  title="Direct message"
+                  className={`px-2 py-1 text-xs font-medium rounded transition-all duration-200 ${
+                    chatMode === 'direct'
+                      ? 'bg-blue-600 text-white'
+                      : 'text-gray-300 hover:text-white'
+                  }`}
+                >
+                  💬
+                </button>
+              </div>
                 {/* Voice Chat Navigation Button */}
                 <Link
                   href="/voice-chat"
                   className="w-8 h-8 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg flex items-center justify-center transition-all duration-200"
                   title="Voice Chat"
                 >
-                  <Mic className="h-4 w-4" />
                   <Mic className="h-4 w-4" />
                 </Link>
                 
@@ -1195,6 +1254,7 @@ export function ChatInterface({ onEnhancementComplete, provider, mode, selectedF
                   <VoiceInterface
                     onTranscript={handleVoiceTranscript}
                     onSpeak={handleVoiceSpeak}
+                    onInterimTranscript={handleInterimTranscript}
                     isListening={isListening}
                     isSpeaking={isSpeaking}
                     disabled={isLoading}
